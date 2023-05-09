@@ -22,12 +22,21 @@ class MainActivity : AppCompatActivity() {
 
         try {
             cameraId =
-                cameraManager.cameraIdList[0] // Pretpostavljamo da prvi dostupni uređaj ima bljeskalicu
+                cameraManager.cameraIdList[0]
         } catch (e: CameraAccessException) {
             e.printStackTrace()
         }
 
         toggleButton = findViewById(R.id.toggleButton)
+        // Set the initial icon and text
+        toggleButton.setCompoundDrawablesRelativeWithIntrinsicBounds(
+            R.drawable.baseline_flashlight_on_24,
+            0,
+            0,
+            0
+        )
+        toggleButton.text = getString(R.string.turn_on)
+
         toggleButton.setOnClickListener {
             if (isFlashlightOn) {
                 turnOffFlashlight()
@@ -42,6 +51,12 @@ class MainActivity : AppCompatActivity() {
             cameraManager.setTorchMode(cameraId!!, true)
             isFlashlightOn = true
             toggleButton.text = getString(R.string.turn_off)
+            toggleButton.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                R.drawable.baseline_flashlight_off_24,
+                0,
+                0,
+                0
+            )
         } catch (e: CameraAccessException) {
             e.printStackTrace()
         }
@@ -52,6 +67,12 @@ class MainActivity : AppCompatActivity() {
             cameraManager.setTorchMode(cameraId!!, false)
             isFlashlightOn = false
             toggleButton.text = getString(R.string.turn_on)
+            toggleButton.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                R.drawable.baseline_flashlight_on_24,
+                0,
+                0,
+                0
+            )
         } catch (e: CameraAccessException) {
             e.printStackTrace()
         }
