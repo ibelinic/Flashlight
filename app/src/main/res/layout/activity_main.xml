@@ -10,20 +10,22 @@
     <Button
         android:id="@+id/toggleButton"
         android:layout_width="0dp"
-        android:layout_height="50dp"
-        android:background="@drawable/button_background"
+        android:layout_height="60dp"
         android:drawableStart="@drawable/baseline_flashlight_on_24"
         android:drawablePadding="20dp"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
         android:text="@string/turn_on"
         android:textAlignment="center"
+        android:textColor="@android:color/black"
+        app:iconTint="#FBEC5D"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_bias="0.444"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintWidth_default="spread" />
+        app:layout_constraintVertical_bias="0.499"
+        android:stateListAnimator="@null"/>
 
     <SeekBar
         android:id="@+id/brightnessSeekBar"
