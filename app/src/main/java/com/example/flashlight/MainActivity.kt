@@ -11,6 +11,7 @@ import android.widget.SeekBar
 import android.widget.Toast
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
+import android.os.Handler
 
 
 class MainActivity : AppCompatActivity() {
@@ -19,7 +20,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var toggleButton: Button
     private var isFlashlightOn = false
     private lateinit var brightnessSeekBar: SeekBar
-    private var animation: ObjectAnimator? = null // Dodano polje za animaciju
+    private var animation: ObjectAnimator? = null
+    private lateinit var whiteButton: Button
+    private lateinit var redButton: Button
+    private lateinit var greenButton: Button
+    private lateinit var blueButton: Button
+    private var isStrobeModeOn = false
+    private lateinit var strobeButton: Button
+    private lateinit var stopStrobeButton: Button
+    private var strobeHandler: Handler? = null
+    private val STROBE_DELAY = 100
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,6 +64,49 @@ class MainActivity : AppCompatActivity() {
             }
         }
         toggleButton.setBackgroundColor(getButtonColorForFlashlightStatus(isFlashlightOn))
+
+        whiteButton = findViewById(R.id.whiteButton)
+        redButton = findViewById(R.id.redButton)
+        greenButton = findViewById(R.id.greenButton)
+        blueButton = findViewById(R.id.blueButton)
+
+        whiteButton.setBackgroundColor(getColor(R.color.yellow))
+        redButton.setBackgroundColor(getColor(R.color.yellow))
+        greenButton.setBackgroundColor(getColor(R.color.yellow))
+        blueButton.setBackgroundColor(getColor(R.color.yellow))
+
+        stopStrobeButton = findViewById(R.id.stopStrobeButton)
+        stopStrobeButton.visibility = View.GONE
+        stopStrobeButton.setOnClickListener {
+            disableStrobeMode()
+        }
+
+        strobeButton = findViewById<Button>(R.id.strobeButton)
+
+        whiteButton.setOnClickListener {
+            changeFlashlightColor(getColor(R.color.white))
+        }
+
+        redButton.setOnClickListener {
+            changeFlashlightColor(getColor(R.color.red))
+        }
+
+        greenButton.setOnClickListener {
+            changeFlashlightColor(getColor(R.color.green))
+        }
+
+        blueButton.setOnClickListener {
+            changeFlashlightColor(getColor(R.color.blue))
+        }
+
+        strobeButton = findViewById<Button>(R.id.strobeButton)
+        strobeButton.setOnClickListener {
+            if (isStrobeModeOn) {
+                disableStrobeMode()
+            } else {
+                enableStrobeMode()
+            }
+        }
     }
 
     private fun turnOnFlashlight() {
@@ -68,12 +121,9 @@ class MainActivity : AppCompatActivity() {
                 0
             )
             brightnessSeekBar.visibility = View.VISIBLE
-            brightnessSeekBar.progress = brightnessSeekBar.max
             val rootView = findViewById<View>(android.R.id.content)
             rootView.setBackgroundColor(getColorForFlashlightStatus(isFlashlightOn))
             toggleButton.setBackgroundColor(getButtonColorForFlashlightStatus(isFlashlightOn))
-
-            // Create the button animation
             animation = ObjectAnimator.ofPropertyValuesHolder(
                 toggleButton,
                 PropertyValuesHolder.ofFloat(View.SCALE_X, 0.9f, 1f),
@@ -83,6 +133,23 @@ class MainActivity : AppCompatActivity() {
             animation?.repeatCount = ObjectAnimator.INFINITE
             animation?.repeatMode = ObjectAnimator.REVERSE
             animation?.start()
+            whiteButton.visibility = View.VISIBLE
+            redButton.visibility = View.VISIBLE
+            greenButton.visibility = View.VISIBLE
+            blueButton.visibility = View.VISIBLE
+
+            strobeButton.visibility = View.VISIBLE
+            strobeButton.setOnClickListener {
+                if (isStrobeModeOn) {
+                    disableStrobeMode()
+                } else {
+                    enableStrobeMode()
+                    whiteButton.visibility = View.GONE
+                    redButton.visibility = View.GONE
+                    greenButton.visibility = View.GONE
+                    blueButton.visibility = View.GONE
+                }
+            }
 
             Toast.makeText(this@MainActivity, "Flashlight is turned ON", Toast.LENGTH_SHORT).show()
         } catch (e: CameraAccessException) {
@@ -96,7 +163,8 @@ class MainActivity : AppCompatActivity() {
             isFlashlightOn = false
             toggleButton.text = getString(R.string.turn_on)
             toggleButton.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                R.drawable.baseline_flashlight_on_24,0,
+                R.drawable.baseline_flashlight_on_24,
+                0,
                 0,
                 0
             )
@@ -104,9 +172,15 @@ class MainActivity : AppCompatActivity() {
             val rootView = findViewById<View>(android.R.id.content)
             rootView.setBackgroundColor(getColorForFlashlightStatus(isFlashlightOn))
             toggleButton.setBackgroundColor(getButtonColorForFlashlightStatus(isFlashlightOn))
-            // Cancel the button animation
             animation?.cancel()
             animation = null
+
+            whiteButton.visibility = View.GONE
+            redButton.visibility = View.GONE
+            greenButton.visibility = View.GONE
+            blueButton.visibility = View.GONE
+
+            strobeButton.visibility = View.GONE
 
             Toast.makeText(this@MainActivity, "Flashlight is turned OFF", Toast.LENGTH_SHORT).show()
         } catch (e: CameraAccessException) {
@@ -129,4 +203,57 @@ class MainActivity : AppCompatActivity() {
             getColor(R.color.yellow)
         }
     }
+
+    private fun changeFlashlightColor(color: Int) {
+        val rootView = findViewById<View>(android.R.id.content)
+        rootView.setBackgroundColor(color)
+    }
+
+    override fun onStop() {
+        super.onStop()
+
+        if (isFlashlightOn) {
+            turnOffFlashlight()
+        }
+    }
+
+    private fun toggleFlashlight() {
+        if (isFlashlightOn) {
+            turnOffFlashlight()
+        } else {
+            turnOnFlashlight()
+        }
+    }
+
+    private fun enableStrobeMode() {
+        isStrobeModeOn = true
+        strobeButton.visibility = View.GONE
+        stopStrobeButton.visibility = View.VISIBLE
+        startStrobeMode()
+    }
+
+    private fun disableStrobeMode() {
+        isStrobeModeOn = false
+        strobeButton.visibility = View.VISIBLE
+        stopStrobeButton.visibility = View.GONE
+        stopStrobeMode()
+    }
+
+    private fun startStrobeMode() {
+        strobeHandler = Handler()
+        strobeHandler?.postDelayed({
+            if (isStrobeModeOn) {
+                toggleFlashlight()
+                startStrobeMode()
+            }
+        }, STROBE_DELAY.toLong())
+    }
+
+    private fun stopStrobeMode() {
+        strobeHandler?.removeCallbacksAndMessages(null)
+        strobeHandler = null
+        Toast.makeText(this@MainActivity, "Strobe mode stopped", Toast.LENGTH_SHORT).show()
+    }
+
 }
+

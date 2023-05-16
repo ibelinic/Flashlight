@@ -7,6 +7,7 @@
     android:padding="5dp"
     tools:context=".MainActivity">
 
+
     <Button
         android:id="@+id/toggleButton"
         android:layout_width="0dp"
@@ -40,5 +41,76 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/toggleButton"
         app:layout_constraintVertical_bias="0.0" />
+
+    <Button
+        android:id="@+id/whiteButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="White"
+        android:textColor="@android:color/black"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/redButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/toggleButton" />
+
+    <Button
+        android:id="@+id/redButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pink"
+        android:textColor="@android:color/black"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/greenButton"
+        app:layout_constraintStart_toEndOf="@+id/whiteButton"
+        app:layout_constraintTop_toBottomOf="@+id/toggleButton" />
+
+    <Button
+        android:id="@+id/greenButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Green"
+        android:textColor="@android:color/black"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/blueButton"
+        app:layout_constraintStart_toEndOf="@+id/redButton"
+        app:layout_constraintTop_toBottomOf="@+id/toggleButton" />
+
+    <Button
+        android:id="@+id/blueButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Blue"
+        android:textColor="@android:color/black"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/greenButton"
+        app:layout_constraintTop_toBottomOf="@+id/toggleButton" />
+
+    <Button
+        android:id="@+id/strobeButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pokreni titranje"
+        android:visibility="gone"
+        android:textColor="@android:color/black"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/brightnessSeekBar" />
+
+    <Button
+        android:id="@+id/stopStrobeButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="132dp"
+        android:text="Zaustavi titranje"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

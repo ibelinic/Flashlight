@@ -2,4 +2,6 @@
     <string name="app_name">Flashlight</string>
     <string name="turn_on">Uključi</string>
     <string name="turn_off">Isključi</string>
+    <string name="strobe_mode_off" />
+    <string name="strobe_mode_on">\n</string>
 </resources>
