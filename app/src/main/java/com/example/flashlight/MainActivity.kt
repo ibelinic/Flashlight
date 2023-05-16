@@ -5,7 +5,9 @@ import android.os.Bundle
 import android.content.Context
 import android.hardware.camera2.CameraAccessException
 import android.hardware.camera2.CameraManager
+import android.view.View
 import android.widget.Button
+import android.widget.SeekBar
 
 
 class MainActivity : AppCompatActivity() {
@@ -13,6 +15,7 @@ class MainActivity : AppCompatActivity() {
     private var cameraId: String? = null
     private lateinit var toggleButton: Button
     private var isFlashlightOn = false
+    private lateinit var brightnessSeekBar: SeekBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,6 +39,7 @@ class MainActivity : AppCompatActivity() {
             0
         )
         toggleButton.text = getString(R.string.turn_on)
+        brightnessSeekBar = findViewById(R.id.brightnessSeekBar)
 
         toggleButton.setOnClickListener {
             if (isFlashlightOn) {
@@ -57,6 +61,8 @@ class MainActivity : AppCompatActivity() {
                 0,
                 0
             )
+            brightnessSeekBar.visibility = View.VISIBLE
+            brightnessSeekBar.progress = brightnessSeekBar.max
         } catch (e: CameraAccessException) {
             e.printStackTrace()
         }
@@ -73,6 +79,7 @@ class MainActivity : AppCompatActivity() {
                 0,
                 0
             )
+            brightnessSeekBar.visibility = View.GONE
         } catch (e: CameraAccessException) {
             e.printStackTrace()
         }
