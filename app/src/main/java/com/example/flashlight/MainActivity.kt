@@ -12,12 +12,19 @@ import android.widget.Toast
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.annotation.SuppressLint
+import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.os.Handler
 import android.view.MotionEvent
 import android.view.ViewGroup
 import android.view.animation.Animation
 import android.view.animation.RotateAnimation
 import android.widget.ImageView
+import android.widget.Switch
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.widget.SwitchCompat
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
 
 
 class MainActivity : AppCompatActivity() {
@@ -28,10 +35,13 @@ class MainActivity : AppCompatActivity() {
     private var animation: ObjectAnimator? = null
     private var isStrobeModeOn = false
     private lateinit var strobeButton: Button
+    private lateinit var holdingButton: Button
+    private lateinit var themeSwitch: SwitchCompat
     private var strobeHandler: Handler? = null
     private lateinit var symbolImageView: ImageView
     private var strobeSpeed: Int = 0
     private lateinit var warningButton: Button
+    private lateinit var brightnessSeekBar: SeekBar
     private var isWarningModeOn = false
     private var warningHandler: Handler? = null
     private var warningPattern: LongArray = longArrayOf(500, 500, 500, 500, 1000, 1000, 1000) // Podešavanje uzorka titranja
@@ -40,6 +50,78 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Definiranje elemenata
+        themeSwitch = findViewById(R.id.themeSwitch) // Promijenite tip u SwitchCompat
+        holdingButton = findViewById(R.id.holdingButton)
+        strobeButton = findViewById(R.id.strobeButton)
+        brightnessSeekBar = findViewById(R.id.brightnessSeekBar)
+        val constraintLayout = findViewById<ConstraintLayout>(R.id.constraintLayout)
+
+// Promjena teme aplikacije
+// Aktiviranje promjene teme klikom na prekidač
+        themeSwitch.setOnCheckedChangeListener { _, isChecked ->
+            val newThemeMode = if (isChecked) {
+                AppCompatDelegate.MODE_NIGHT_YES
+            } else {
+                AppCompatDelegate.MODE_NIGHT_NO
+            }
+            AppCompatDelegate.setDefaultNightMode(newThemeMode)
+
+            // Promjena boje pozadine, gumba i teksta
+            val backgroundRes = when (newThemeMode) {
+                AppCompatDelegate.MODE_NIGHT_YES -> {
+                    themeSwitch.text = getString(R.string.text_dark_mode)
+                    R.color.dark_background
+                }
+                else -> {
+                    themeSwitch.text = getString(R.string.text_light_mode)
+                    R.color.light_background
+                }
+            }
+            constraintLayout.setBackgroundColor(ContextCompat.getColor(this, backgroundRes))
+
+            val buttonColor = when (newThemeMode) {
+                AppCompatDelegate.MODE_NIGHT_YES -> R.color.red
+                else -> R.color.baby_blue
+            }
+            val buttonBackground = ContextCompat.getColorStateList(this, buttonColor)
+            themeSwitch.thumbTintList = buttonBackground
+            strobeButton.backgroundTintList = buttonBackground
+            warningButton.backgroundTintList = buttonBackground
+            holdingButton.backgroundTintList = buttonBackground
+
+            val textColor = when (newThemeMode) {
+                AppCompatDelegate.MODE_NIGHT_YES -> android.R.color.white
+                else -> android.R.color.black
+            }
+            themeSwitch.setTextColor(ContextCompat.getColor(this, textColor))
+            strobeButton.setTextColor(ContextCompat.getColor(this, textColor))
+            warningButton.setTextColor(ContextCompat.getColor(this, textColor))
+            holdingButton.setTextColor(ContextCompat.getColor(this, textColor))
+
+            // Promjena boje simbola
+            val symbolColor = when (newThemeMode) {
+                AppCompatDelegate.MODE_NIGHT_YES -> R.color.red
+                else -> R.color.baby_blue
+            }
+            val symbolImageView = findViewById<ImageView>(R.id.symbolImageView)
+            symbolImageView.setColorFilter(ContextCompat.getColor(this, symbolColor))
+
+            // Promjena boje `SeekBar`-a
+            val seekBarColor = when (newThemeMode) {
+                AppCompatDelegate.MODE_NIGHT_YES -> R.color.seekbar_color2
+                else -> R.color.someElementColor
+            }
+            brightnessSeekBar.progressTintList = ColorStateList.valueOf(ContextCompat.getColor(this, seekBarColor))
+
+            // Promjena boje thumba na SeekBar-u
+            val thumbColor = when (newThemeMode) {
+                AppCompatDelegate.MODE_NIGHT_YES -> R.color.seekbar_color2
+                else -> R.color.someElementColor
+            }
+            brightnessSeekBar.thumbTintList = ColorStateList.valueOf(ContextCompat.getColor(this, thumbColor))
+        }
 
         cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
 
@@ -68,7 +150,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         //Aktiviranje titranja bljeskalice klikom na gumb
-        strobeButton = findViewById<Button>(R.id.strobeButton)
         strobeButton.setOnClickListener {
             if (isStrobeModeOn) {
                 isStrobeModeOn = false
@@ -80,7 +161,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         //Titranje bljeskalice ovisno o vrijednosti u seekbar-u
-        val brightnessSeekBar = findViewById<SeekBar>(R.id.brightnessSeekBar)
         brightnessSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 strobeSpeed = progress
@@ -96,7 +176,6 @@ class MainActivity : AppCompatActivity() {
         })
 
         //Bljeskalica uključena samo kada se drži gumb, a inače je ugašena
-        val holdingButton = findViewById<Button>(R.id.holdingButton)
         holdingButton.setOnTouchListener { view, motionEvent ->
             when (motionEvent.action) {
                 MotionEvent.ACTION_DOWN -> turnOnFlashlight() // Uključivanje bljeskalice kada se gumb drži
@@ -252,7 +331,5 @@ class MainActivity : AppCompatActivity() {
         warningHandler = null
         turnOffFlashlight()
     }
-
-
 }
 

@@ -7,4 +7,13 @@
     <color name="red">#FAA0A0</color>
     <color name="green">#5F9EA0</color>
     <color name="blue">#7DF9FF</color>
+    <color name="light_background">#FFF5EE</color>
+    <color name="dark_background">#0c0c0c</color>
+    <color name="buttons_dark">#B6D0E2</color>
+    <color name="someElementColor">#E4D00A</color>
+    <color name="seekbar_color2">#E6E6FA</color>
+
+    <color name="switch_thumb_color">#E6E6FA</color>
+    <color name="switch_track_color">#E6E6FA</color>
+
 </resources>

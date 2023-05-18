@@ -4,4 +4,6 @@
     <string name="turn_off">Isključi</string>
     <string name="strobe_mode_off" />
     <string name="strobe_mode_on">\n</string>
+    <string name="text_dark_mode">Tamno</string>
+    <string name="text_light_mode">Svijetlo</string>
 </resources>
