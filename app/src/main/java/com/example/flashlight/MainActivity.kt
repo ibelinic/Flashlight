@@ -11,7 +11,13 @@ import android.widget.SeekBar
 import android.widget.Toast
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
+import android.annotation.SuppressLint
 import android.os.Handler
+import android.view.MotionEvent
+import android.view.ViewGroup
+import android.view.animation.Animation
+import android.view.animation.RotateAnimation
+import android.widget.ImageView
 
 
 class MainActivity : AppCompatActivity() {
@@ -19,18 +25,18 @@ class MainActivity : AppCompatActivity() {
     private var cameraId: String? = null
     private lateinit var toggleButton: Button
     private var isFlashlightOn = false
-    private lateinit var brightnessSeekBar: SeekBar
     private var animation: ObjectAnimator? = null
-    private lateinit var whiteButton: Button
-    private lateinit var redButton: Button
-    private lateinit var greenButton: Button
-    private lateinit var blueButton: Button
     private var isStrobeModeOn = false
     private lateinit var strobeButton: Button
-    private lateinit var stopStrobeButton: Button
     private var strobeHandler: Handler? = null
-    private val STROBE_DELAY = 100
+    private lateinit var symbolImageView: ImageView
+    private var strobeSpeed: Int = 0
+    private lateinit var warningButton: Button
+    private var isWarningModeOn = false
+    private var warningHandler: Handler? = null
+    private var warningPattern: LongArray = longArrayOf(500, 500, 500, 500, 1000, 1000, 1000) // Podešavanje uzorka titranja
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -51,11 +57,8 @@ class MainActivity : AppCompatActivity() {
             0
         )
         toggleButton.text = getString(R.string.turn_on)
-        brightnessSeekBar = findViewById(R.id.brightnessSeekBar)
 
-        val rootView = findViewById<View>(android.R.id.content)
-        rootView.setBackgroundColor(getColorForFlashlightStatus(isFlashlightOn))
-
+        //Uključivanje/Isključivanje bljeskalice klikom na gumb
         toggleButton.setOnClickListener {
             if (isFlashlightOn) {
                 turnOffFlashlight()
@@ -63,52 +66,60 @@ class MainActivity : AppCompatActivity() {
                 turnOnFlashlight()
             }
         }
-        toggleButton.setBackgroundColor(getButtonColorForFlashlightStatus(isFlashlightOn))
 
-        whiteButton = findViewById(R.id.whiteButton)
-        redButton = findViewById(R.id.redButton)
-        greenButton = findViewById(R.id.greenButton)
-        blueButton = findViewById(R.id.blueButton)
-
-        whiteButton.setBackgroundColor(getColor(R.color.yellow))
-        redButton.setBackgroundColor(getColor(R.color.yellow))
-        greenButton.setBackgroundColor(getColor(R.color.yellow))
-        blueButton.setBackgroundColor(getColor(R.color.yellow))
-
-        stopStrobeButton = findViewById(R.id.stopStrobeButton)
-        stopStrobeButton.visibility = View.GONE
-        stopStrobeButton.setOnClickListener {
-            disableStrobeMode()
-        }
-
-        strobeButton = findViewById<Button>(R.id.strobeButton)
-
-        whiteButton.setOnClickListener {
-            changeFlashlightColor(getColor(R.color.white))
-        }
-
-        redButton.setOnClickListener {
-            changeFlashlightColor(getColor(R.color.red))
-        }
-
-        greenButton.setOnClickListener {
-            changeFlashlightColor(getColor(R.color.green))
-        }
-
-        blueButton.setOnClickListener {
-            changeFlashlightColor(getColor(R.color.blue))
-        }
-
+        //Aktiviranje titranja bljeskalice klikom na gumb
         strobeButton = findViewById<Button>(R.id.strobeButton)
         strobeButton.setOnClickListener {
             if (isStrobeModeOn) {
-                disableStrobeMode()
+                isStrobeModeOn = false
+                stopStrobeMode()
             } else {
-                enableStrobeMode()
+                isStrobeModeOn = true
+                startStrobeMode()
             }
         }
+
+        //Titranje bljeskalice ovisno o vrijednosti u seekbar-u
+        val brightnessSeekBar = findViewById<SeekBar>(R.id.brightnessSeekBar)
+        brightnessSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                strobeSpeed = progress
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                // Nema potrebe za implementacijom ovih metoda
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                // Nema potrebe za implementacijom ovih metoda
+            }
+        })
+
+        //Bljeskalica uključena samo kada se drži gumb, a inače je ugašena
+        val holdingButton = findViewById<Button>(R.id.holdingButton)
+        holdingButton.setOnTouchListener { view, motionEvent ->
+            when (motionEvent.action) {
+                MotionEvent.ACTION_DOWN -> turnOnFlashlight() // Uključivanje bljeskalice kada se gumb drži
+                MotionEvent.ACTION_UP -> turnOffFlashlight() // Gašenje bljeskalice kada se gumb otpusti
+            }
+            true
+        }
+
+        //Bljeskalica u načinu bljeskanja za upozorenje
+        warningButton = findViewById<Button>(R.id.warningButton)
+        warningButton.setOnClickListener {
+            if (isWarningModeOn) {
+                isWarningModeOn = false
+                stopWarningMode()
+            } else {
+                isWarningModeOn = true
+                startWarningMode()
+            }
+        }
+
     }
 
+    //Uključivanje bljeskalice
     private fun turnOnFlashlight() {
         try {
             cameraManager.setTorchMode(cameraId!!, true)
@@ -120,10 +131,6 @@ class MainActivity : AppCompatActivity() {
                 0,
                 0
             )
-            brightnessSeekBar.visibility = View.VISIBLE
-            val rootView = findViewById<View>(android.R.id.content)
-            rootView.setBackgroundColor(getColorForFlashlightStatus(isFlashlightOn))
-            toggleButton.setBackgroundColor(getButtonColorForFlashlightStatus(isFlashlightOn))
             animation = ObjectAnimator.ofPropertyValuesHolder(
                 toggleButton,
                 PropertyValuesHolder.ofFloat(View.SCALE_X, 0.9f, 1f),
@@ -133,30 +140,33 @@ class MainActivity : AppCompatActivity() {
             animation?.repeatCount = ObjectAnimator.INFINITE
             animation?.repeatMode = ObjectAnimator.REVERSE
             animation?.start()
-            whiteButton.visibility = View.VISIBLE
-            redButton.visibility = View.VISIBLE
-            greenButton.visibility = View.VISIBLE
-            blueButton.visibility = View.VISIBLE
 
-            strobeButton.visibility = View.VISIBLE
-            strobeButton.setOnClickListener {
-                if (isStrobeModeOn) {
-                    disableStrobeMode()
-                } else {
-                    enableStrobeMode()
-                    whiteButton.visibility = View.GONE
-                    redButton.visibility = View.GONE
-                    greenButton.visibility = View.GONE
-                    blueButton.visibility = View.GONE
-                }
+            //Simbol koji predstavlja uključenu bljeskalicu (rotacija simbola) ili isključenu bljeskalicu (statičan simbol)
+            symbolImageView = findViewById<ImageView>(R.id.symbolImageView)
+            //Kreiranje animacije rotacije
+            val rotateAnimation = RotateAnimation(
+                0f,
+                360f,
+                Animation.RELATIVE_TO_SELF,
+                0.5f,
+                Animation.RELATIVE_TO_SELF,
+                0.5f
+            )
+            rotateAnimation.duration = 1000 //Postavljanje trajanja animacije
+            rotateAnimation.repeatCount = Animation.INFINITE //Ponavljanje animacije beskonačno
+            //Pokretanje animacije
+            symbolImageView.startAnimation(rotateAnimation)
+
+            //Poruka kako je bljeskalica uključena (samo ako nije u strobe i warning modu)
+            if (isStrobeModeOn && isWarningModeOn) {
+                Toast.makeText(this@MainActivity, "Flashlight is turned ON", Toast.LENGTH_SHORT).show()
             }
-
-            Toast.makeText(this@MainActivity, "Flashlight is turned ON", Toast.LENGTH_SHORT).show()
         } catch (e: CameraAccessException) {
             e.printStackTrace()
         }
     }
 
+    //Isključivanje bljeskalice
     private fun turnOffFlashlight() {
         try {
             cameraManager.setTorchMode(cameraId!!, false)
@@ -168,55 +178,31 @@ class MainActivity : AppCompatActivity() {
                 0,
                 0
             )
-            brightnessSeekBar.visibility = View.GONE
-            val rootView = findViewById<View>(android.R.id.content)
-            rootView.setBackgroundColor(getColorForFlashlightStatus(isFlashlightOn))
-            toggleButton.setBackgroundColor(getButtonColorForFlashlightStatus(isFlashlightOn))
             animation?.cancel()
             animation = null
 
-            whiteButton.visibility = View.GONE
-            redButton.visibility = View.GONE
-            greenButton.visibility = View.GONE
-            blueButton.visibility = View.GONE
+            //Prekidanje rotacije simbola
+            symbolImageView = findViewById<ImageView>(R.id.symbolImageView)
+            symbolImageView.clearAnimation()
 
-            strobeButton.visibility = View.GONE
-
-            Toast.makeText(this@MainActivity, "Flashlight is turned OFF", Toast.LENGTH_SHORT).show()
+            //Poruka kako je bljeskalica isključena (samo ako nije u strobe i warning modu)
+            if (isStrobeModeOn && isWarningModeOn) {
+                Toast.makeText(this@MainActivity, "Flashlight is turned OFF", Toast.LENGTH_SHORT).show()
+            }
         } catch (e: CameraAccessException) {
             e.printStackTrace()
         }
     }
 
-    private fun getColorForFlashlightStatus(isFlashlightOn: Boolean): Int {
-        return if (isFlashlightOn) {
-            getColor(R.color.white)
-        } else {
-            getColor(R.color.black)
-        }
-    }
-
-    private fun getButtonColorForFlashlightStatus(isFlashlightOn: Boolean): Int {
-        return if (isFlashlightOn) {
-            getColor(R.color.baby_blue)
-        } else {
-            getColor(R.color.yellow)
-        }
-    }
-
-    private fun changeFlashlightColor(color: Int) {
-        val rootView = findViewById<View>(android.R.id.content)
-        rootView.setBackgroundColor(color)
-    }
-
+    //Isključivanje bljeskalice izlaskom iz aplikacije
     override fun onStop() {
         super.onStop()
-
         if (isFlashlightOn) {
             turnOffFlashlight()
         }
     }
 
+    //Uključivanje/Isključivanje bljeskalice pomoću jednog gumba
     private fun toggleFlashlight() {
         if (isFlashlightOn) {
             turnOffFlashlight()
@@ -225,20 +211,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun enableStrobeMode() {
-        isStrobeModeOn = true
-        strobeButton.visibility = View.GONE
-        stopStrobeButton.visibility = View.VISIBLE
-        startStrobeMode()
-    }
-
-    private fun disableStrobeMode() {
-        isStrobeModeOn = false
-        strobeButton.visibility = View.VISIBLE
-        stopStrobeButton.visibility = View.GONE
-        stopStrobeMode()
-    }
-
+    //Početak titranja bljeskalice
     private fun startStrobeMode() {
         strobeHandler = Handler()
         strobeHandler?.postDelayed({
@@ -246,14 +219,40 @@ class MainActivity : AppCompatActivity() {
                 toggleFlashlight()
                 startStrobeMode()
             }
-        }, STROBE_DELAY.toLong())
+        }, strobeSpeed.toLong())
     }
 
+    //Prekidanje titranja bljeskalice
     private fun stopStrobeMode() {
         strobeHandler?.removeCallbacksAndMessages(null)
         strobeHandler = null
         Toast.makeText(this@MainActivity, "Strobe mode stopped", Toast.LENGTH_SHORT).show()
     }
+
+    //Početak načina upozorenja bljeskalice
+    private var warningPatternIndex = 0 // Dodan indeks za praćenje trenutne odgode iz uzorka
+    //Početak načina upozorenja bljeskalice
+    private fun startWarningMode() {
+        warningHandler = Handler()
+        warningHandler?.postDelayed({
+            if (isWarningModeOn) {
+                toggleFlashlight()
+                val delay = warningPattern[warningPatternIndex]
+                warningPatternIndex = (warningPatternIndex + 1) % warningPattern.size // Inkrementiranje indeksa i omogućavanje cikličnog korištenja uzorka
+                warningHandler?.postDelayed({
+                    startWarningMode()
+                }, delay)
+            }
+        }, 0)
+    }
+
+    //Prekidanje načina upozorenja bljeskalice
+    private fun stopWarningMode() {
+        warningHandler?.removeCallbacksAndMessages(null)
+        warningHandler = null
+        turnOffFlashlight()
+    }
+
 
 }
 
