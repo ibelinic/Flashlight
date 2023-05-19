@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Taschenlampe</string>
+    <string name="turn_on">Einschalten</string>
+    <string name="turn_off">Ausschalten</string>
+    <string name="strobe_mode_off">Aus</string>
+    <string name="strobe_mode_on">Ein</string>
+    <string name="text_dark_mode">Dunkel</string>
+    <string name="text_light_mode">Hell</string>
+    <string name="warning_button">Warnung</string>
+    <string name="pulse_button">Pulsieren</string>
+    <string name="continuous_light">Kontinuierliches Licht</string>
+    <string name="select_language">Sprache auswählen</string>
+    <string name="symbol_image">Symbol für die Taschenlampenfunktion</string>
+
+</resources>

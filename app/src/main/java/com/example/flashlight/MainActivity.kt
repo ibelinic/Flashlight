@@ -13,18 +13,20 @@ import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.annotation.SuppressLint
 import android.content.res.ColorStateList
-import android.content.res.Configuration
 import android.os.Handler
 import android.view.MotionEvent
-import android.view.ViewGroup
 import android.view.animation.Animation
 import android.view.animation.RotateAnimation
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.ImageView
-import android.widget.Switch
+import android.widget.Spinner
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.appcompat.widget.SwitchCompat
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
+import androidx.appcompat.widget.SwitchCompat
+import androidx.core.widget.TextViewCompat
+import java.util.Locale
 
 
 class MainActivity : AppCompatActivity() {
@@ -36,7 +38,7 @@ class MainActivity : AppCompatActivity() {
     private var isStrobeModeOn = false
     private lateinit var strobeButton: Button
     private lateinit var holdingButton: Button
-    private lateinit var themeSwitch: SwitchCompat
+    private lateinit var themeSwitcher: SwitchCompat
     private var strobeHandler: Handler? = null
     private lateinit var symbolImageView: ImageView
     private var strobeSpeed: Int = 0
@@ -51,16 +53,29 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        //Promjena jezika
+        val languageSpinner = findViewById<Spinner>(R.id.languageSpinner)
+        languageSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val selectedLanguage = parent?.getItemAtPosition(position).toString()
+                setAppLanguage(selectedLanguage)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                // Nista nije odabrano
+            }
+        }
+
         // Definiranje elemenata
-        themeSwitch = findViewById(R.id.themeSwitch) // Promijenite tip u SwitchCompat
+        themeSwitcher = findViewById(R.id.themeSwitcher)
         holdingButton = findViewById(R.id.holdingButton)
         strobeButton = findViewById(R.id.strobeButton)
         brightnessSeekBar = findViewById(R.id.brightnessSeekBar)
         val constraintLayout = findViewById<ConstraintLayout>(R.id.constraintLayout)
 
-// Promjena teme aplikacije
-// Aktiviranje promjene teme klikom na prekidač
-        themeSwitch.setOnCheckedChangeListener { _, isChecked ->
+        // Promjena teme aplikacije
+        // Aktiviranje promjene teme klikom na prekidač
+        themeSwitcher.setOnCheckedChangeListener { _, isChecked ->
             val newThemeMode = if (isChecked) {
                 AppCompatDelegate.MODE_NIGHT_YES
             } else {
@@ -71,11 +86,11 @@ class MainActivity : AppCompatActivity() {
             // Promjena boje pozadine, gumba i teksta
             val backgroundRes = when (newThemeMode) {
                 AppCompatDelegate.MODE_NIGHT_YES -> {
-                    themeSwitch.text = getString(R.string.text_dark_mode)
+                    themeSwitcher.text = getString(R.string.text_dark_mode)
                     R.color.dark_background
                 }
                 else -> {
-                    themeSwitch.text = getString(R.string.text_light_mode)
+                    themeSwitcher.text = getString(R.string.text_light_mode)
                     R.color.light_background
                 }
             }
@@ -86,7 +101,7 @@ class MainActivity : AppCompatActivity() {
                 else -> R.color.baby_blue
             }
             val buttonBackground = ContextCompat.getColorStateList(this, buttonColor)
-            themeSwitch.thumbTintList = buttonBackground
+            themeSwitcher.thumbTintList = buttonBackground
             strobeButton.backgroundTintList = buttonBackground
             warningButton.backgroundTintList = buttonBackground
             holdingButton.backgroundTintList = buttonBackground
@@ -95,7 +110,7 @@ class MainActivity : AppCompatActivity() {
                 AppCompatDelegate.MODE_NIGHT_YES -> android.R.color.white
                 else -> android.R.color.black
             }
-            themeSwitch.setTextColor(ContextCompat.getColor(this, textColor))
+            themeSwitcher.setTextColor(ContextCompat.getColor(this, textColor))
             strobeButton.setTextColor(ContextCompat.getColor(this, textColor))
             warningButton.setTextColor(ContextCompat.getColor(this, textColor))
             holdingButton.setTextColor(ContextCompat.getColor(this, textColor))
@@ -121,6 +136,22 @@ class MainActivity : AppCompatActivity() {
                 else -> R.color.someElementColor
             }
             brightnessSeekBar.thumbTintList = ColorStateList.valueOf(ContextCompat.getColor(this, thumbColor))
+
+            // Promjena boje teksta za Spinner
+            val textColors = intArrayOf(
+                android.R.color.black,  // Boja teksta za prvi item
+                android.R.color.black,    // Boja teksta za drugi item
+                android.R.color.black,  // Boja teksta za treći item
+            )
+
+            val adapter = CustomSpinnerAdapter(
+                this,
+                android.R.layout.simple_spinner_item,
+                resources.getStringArray(R.array.languages),
+                textColors
+            )
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            languageSpinner.adapter = adapter
         }
 
         cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
@@ -176,7 +207,7 @@ class MainActivity : AppCompatActivity() {
         })
 
         //Bljeskalica uključena samo kada se drži gumb, a inače je ugašena
-        holdingButton.setOnTouchListener { view, motionEvent ->
+        holdingButton.setOnTouchListener { _, motionEvent ->
             when (motionEvent.action) {
                 MotionEvent.ACTION_DOWN -> turnOnFlashlight() // Uključivanje bljeskalice kada se gumb drži
                 MotionEvent.ACTION_UP -> turnOffFlashlight() // Gašenje bljeskalice kada se gumb otpusti
@@ -185,7 +216,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         //Bljeskalica u načinu bljeskanja za upozorenje
-        warningButton = findViewById<Button>(R.id.warningButton)
+        warningButton = findViewById(R.id.warningButton)
         warningButton.setOnClickListener {
             if (isWarningModeOn) {
                 isWarningModeOn = false
@@ -221,7 +252,7 @@ class MainActivity : AppCompatActivity() {
             animation?.start()
 
             //Simbol koji predstavlja uključenu bljeskalicu (rotacija simbola) ili isključenu bljeskalicu (statičan simbol)
-            symbolImageView = findViewById<ImageView>(R.id.symbolImageView)
+            symbolImageView = findViewById(R.id.symbolImageView)
             //Kreiranje animacije rotacije
             val rotateAnimation = RotateAnimation(
                 0f,
@@ -261,7 +292,7 @@ class MainActivity : AppCompatActivity() {
             animation = null
 
             //Prekidanje rotacije simbola
-            symbolImageView = findViewById<ImageView>(R.id.symbolImageView)
+            symbolImageView = findViewById(R.id.symbolImageView)
             symbolImageView.clearAnimation()
 
             //Poruka kako je bljeskalica isključena (samo ako nije u strobe i warning modu)
@@ -330,6 +361,30 @@ class MainActivity : AppCompatActivity() {
         warningHandler?.removeCallbacksAndMessages(null)
         warningHandler = null
         turnOffFlashlight()
+    }
+
+    private fun setAppLanguage(language: String) {
+        val locale = when (language) {
+            "English" -> Locale("en")
+            "Deutsch" -> Locale("de")
+            "Hrvatski" -> Locale("hr")
+            else -> Locale.getDefault()
+        }
+        Locale.setDefault(locale)
+
+        val resources = resources
+        val configuration = resources.configuration
+        configuration.setLocale(locale)
+        resources.updateConfiguration(configuration, resources.displayMetrics)
+
+        // Ažurirajte tekstove i resurse na sučelju
+        // Ovdje možete postaviti nove vrijednosti za tekstove ili osvježiti prikaz
+
+        toggleButton.text = getString(R.string.turn_on)
+        strobeButton.text = getString(R.string.pulse_button)
+        holdingButton.text = getString(R.string.continuous_light)
+        themeSwitcher.text = getString(R.string.text_light_mode)
+        warningButton.text = getString(R.string.warning_button)
     }
 }
 

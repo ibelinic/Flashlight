@@ -1,9 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Flashlight</string>
-    <string name="turn_on">Uključi</string>
-    <string name="turn_off">Isključi</string>
-    <string name="strobe_mode_off" />
-    <string name="strobe_mode_on">\n</string>
-    <string name="text_dark_mode">Tamno</string>
-    <string name="text_light_mode">Svijetlo</string>
+    <string name="turn_on">Turn On</string>
+    <string name="turn_off">Turn Off</string>
+    <string name="strobe_mode_off">Off</string>
+    <string name="strobe_mode_on">On</string>
+    <string name="text_dark_mode">Dark</string>
+    <string name="text_light_mode">Light</string>
+    <string name="warning_button">Warning</string>
+    <string name="pulse_button">Pulsing</string>
+    <string name="continuous_light">Continuous Light</string>
+    <string name="select_language">Select language</string>
+    <string name="symbol_image">Flashlight toggle symbol</string>
 </resources>
