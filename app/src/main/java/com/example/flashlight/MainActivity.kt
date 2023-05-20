@@ -12,21 +12,20 @@ import android.widget.Toast
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.annotation.SuppressLint
-import android.content.ContextWrapper
+import android.content.SharedPreferences
 import android.content.res.ColorStateList
 import android.os.Handler
+import android.util.Log
 import android.view.MotionEvent
 import android.view.animation.Animation
 import android.view.animation.RotateAnimation
 import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.Spinner
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.appcompat.widget.SwitchCompat
-import androidx.core.widget.TextViewCompat
 import java.util.Locale
 
 
@@ -51,16 +50,56 @@ class MainActivity : AppCompatActivity() {
         longArrayOf(500, 500, 500, 500, 1000, 1000, 1000) // Podešavanje uzorka titranja
 
     private lateinit var languageSpinner: Spinner
-    // Definirajte globalnu varijablu za spremanje trenutne teme
+    // Definiranje globalne varijable za spremanje trenutne teme
     private var currentThemeMode: Int = AppCompatDelegate.MODE_NIGHT_NO
+
+    private lateinit var sharedPreferences : SharedPreferences
+
+    private lateinit var constraintLayout : ConstraintLayout
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        //Promjena jezika
+        // Definiranje elemenata
+        toggleButton = findViewById(R.id.toggleButton)
+        themeSwitcher = findViewById(R.id.themeSwitcher)
+        holdingButton = findViewById(R.id.holdingButton)
+        strobeButton = findViewById(R.id.strobeButton)
+        warningButton = findViewById(R.id.warningButton)
+        brightnessSeekBar = findViewById(R.id.brightnessSeekBar)
+        constraintLayout = findViewById<ConstraintLayout>(R.id.constraintLayout)
         languageSpinner = findViewById(R.id.languageSpinner)
+        symbolImageView = findViewById(R.id.symbolImageView)
+
+        sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+
+        val switcherState = sharedPreferences.getBoolean("themeSwitcherState", false)
+        themeSwitcher.isChecked = switcherState
+
+        //Promjena boje adaptera za spinner
+        val textColors = intArrayOf(
+            android.R.color.black,  // Boja teksta za prvi item
+            android.R.color.black,  // Boja teksta za drugi item
+            android.R.color.black   // Boja teksta za treći item
+        )
+        val adapter = CustomSpinnerAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            resources.getStringArray(R.array.languages),
+            textColors
+        )
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        languageSpinner.adapter = adapter
+
+        //Dohvacanje prethodno odabranog jezika i postavljanje istog u spinner
+        val selectedLanguage = sharedPreferences.getString("selectedLanguage", null)
+        if (selectedLanguage != null) {
+            val selectedIndex = adapter.getPosition(selectedLanguage)
+            languageSpinner.setSelection(selectedIndex)
+        }
+
         languageSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
                 parent: AdapterView<*>?,
@@ -69,6 +108,7 @@ class MainActivity : AppCompatActivity() {
                 id: Long
             ) {
                 val selectedLanguage = parent?.getItemAtPosition(position).toString()
+                sharedPreferences.edit().putString("selectedLanguage", selectedLanguage).apply()
                 setAppLanguage(selectedLanguage)
             }
 
@@ -76,13 +116,6 @@ class MainActivity : AppCompatActivity() {
                 // Nista nije odabrano
             }
         }
-
-        // Definiranje elemenata
-        themeSwitcher = findViewById(R.id.themeSwitcher)
-        holdingButton = findViewById(R.id.holdingButton)
-        strobeButton = findViewById(R.id.strobeButton)
-        brightnessSeekBar = findViewById(R.id.brightnessSeekBar)
-        val constraintLayout = findViewById<ConstraintLayout>(R.id.constraintLayout)
 
         // Promjena teme aplikacije
         // Aktiviranje promjene teme klikom na prekidač
@@ -92,22 +125,15 @@ class MainActivity : AppCompatActivity() {
             } else {
                 AppCompatDelegate.MODE_NIGHT_NO
             }
+            sharedPreferences.edit().putBoolean("themeSwitcherState", isChecked).apply()
             AppCompatDelegate.setDefaultNightMode(newThemeMode)
 
-            // Provjerite je li se promijenila tema
-            if (currentThemeMode != newThemeMode) {
-                currentThemeMode = newThemeMode
-
-                // Postavite novu temu
-                AppCompatDelegate.setDefaultNightMode(newThemeMode)
-
-                // Promjena boje pozadine, gumba i teksta
+            // Promjena boje pozadine, gumba i teksta
                 val backgroundRes = when (newThemeMode) {
                     AppCompatDelegate.MODE_NIGHT_YES -> {
                         themeSwitcher.text = getString(R.string.text_dark_mode)
                         R.color.dark_background
                     }
-
                     else -> {
                         themeSwitcher.text = getString(R.string.text_light_mode)
                         R.color.light_background
@@ -134,112 +160,106 @@ class MainActivity : AppCompatActivity() {
                 warningButton.setTextColor(ContextCompat.getColor(this, textColor))
                 holdingButton.setTextColor(ContextCompat.getColor(this, textColor))
 
-                // Promjena boje simbola
-                val symbolColor = when (newThemeMode) {
-                    AppCompatDelegate.MODE_NIGHT_YES -> R.color.red
-                    else -> R.color.baby_blue
-                }
-                val symbolImageView = findViewById<ImageView>(R.id.symbolImageView)
-                symbolImageView.setColorFilter(ContextCompat.getColor(this, symbolColor))
-
-                // Promjena boje `SeekBar`-a
-                val seekBarColor = when (newThemeMode) {
-                    AppCompatDelegate.MODE_NIGHT_YES -> R.color.seekbar_color2
-                    else -> R.color.someElementColor
-                }
-                brightnessSeekBar.progressTintList =
-                    ColorStateList.valueOf(ContextCompat.getColor(this, seekBarColor))
-
-                // Promjena boje thumba na SeekBar-u
-                val thumbColor = when (newThemeMode) {
-                    AppCompatDelegate.MODE_NIGHT_YES -> R.color.seekbar_color2
-                    else -> R.color.someElementColor
-                }
-                brightnessSeekBar.thumbTintList =
-                    ColorStateList.valueOf(ContextCompat.getColor(this, thumbColor))
-
+            // Promjena boje simbola
+            val symbolColor = when (newThemeMode) {
+                AppCompatDelegate.MODE_NIGHT_YES -> R.color.red
+                else -> R.color.baby_blue
             }
+            symbolImageView.setColorFilter(ContextCompat.getColor(this, symbolColor))
+
+            // Promjena boje `SeekBar`-a
+            val seekBarColor = when (newThemeMode) {
+                AppCompatDelegate.MODE_NIGHT_YES -> R.color.seekbar_color2
+                else -> R.color.someElementColor
             }
+            brightnessSeekBar.progressTintList =
+                ColorStateList.valueOf(ContextCompat.getColor(this, seekBarColor))
 
-        // Postavljanje boje teksta za Spinner prilikom inicijalizacije
-        setSpinnerTextColors()
-
-            cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
-
-            try {
-                cameraId = cameraManager.cameraIdList[0]
-            } catch (e: CameraAccessException) {
-                e.printStackTrace()
+            // Promjena boje thumba na SeekBar-u
+            val thumbColor = when (newThemeMode) {
+                AppCompatDelegate.MODE_NIGHT_YES -> R.color.seekbar_color2
+                else -> R.color.someElementColor
             }
+            brightnessSeekBar.thumbTintList =
+                ColorStateList.valueOf(ContextCompat.getColor(this, thumbColor))
+        }
+        onResume()
 
-            toggleButton = findViewById(R.id.toggleButton)
-            toggleButton.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                R.drawable.baseline_flashlight_on_24,
-                0,
-                0,
-                0
-            )
-            toggleButton.text = getString(R.string.turn_on)
+        cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
 
-            //Uključivanje/Isključivanje bljeskalice klikom na gumb
-            toggleButton.setOnClickListener {
-                if (isFlashlightOn) {
-                    turnOffFlashlight()
-                } else {
-                    turnOnFlashlight()
-                }
+        try {
+            cameraId = cameraManager.cameraIdList[0]
+        } catch (e: CameraAccessException) {
+            e.printStackTrace()
+        }
+
+        toggleButton.setCompoundDrawablesRelativeWithIntrinsicBounds(
+            R.drawable.baseline_flashlight_on_24,
+            0,
+            0,
+            0
+        )
+        toggleButton.text = getString(R.string.turn_on)
+
+        //Uključivanje/Isključivanje bljeskalice klikom na gumb
+        toggleButton.setOnClickListener {
+            if (isFlashlightOn) {
+                turnOffFlashlight()
+            } else {
+                turnOnFlashlight()
             }
+        }
 
-            //Aktiviranje titranja bljeskalice klikom na gumb
-            strobeButton.setOnClickListener {
-                if (isStrobeModeOn) {
-                    isStrobeModeOn = false
-                    stopStrobeMode()
-                } else {
-                    isStrobeModeOn = true
-                    startStrobeMode()
-                }
+        //Aktiviranje titranja bljeskalice klikom na gumb
+        strobeButton.setOnClickListener {
+            if (isStrobeModeOn) {
+                isStrobeModeOn = false
+                stopStrobeMode()
+            } else {
+                isStrobeModeOn = true
+                startStrobeMode()
             }
+        }
 
-            //Titranje bljeskalice ovisno o vrijednosti u seekbar-u
-            brightnessSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(
-                    seekBar: SeekBar?,
-                    progress: Int,
-                    fromUser: Boolean
-                ) {
-                    strobeSpeed = progress
-                }
-
-                override fun onStartTrackingTouch(seekBar: SeekBar?) {
-                    // Nema potrebe za implementacijom ovih metoda
-                }
-
-                override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                    // Nema potrebe za implementacijom ovih metoda
-                }
-            })
-
-            //Bljeskalica uključena samo kada se drži gumb, a inače je ugašena
-            holdingButton.setOnTouchListener { _, motionEvent ->
-                when (motionEvent.action) {
-                    MotionEvent.ACTION_DOWN -> turnOnFlashlight() // Uključivanje bljeskalice kada se gumb drži
-                    MotionEvent.ACTION_UP -> turnOffFlashlight() // Gašenje bljeskalice kada se gumb otpusti
-                }
-                true
+        //Titranje bljeskalice ovisno o vrijednosti u seekbar-u
+        brightnessSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(
+                seekBar: SeekBar?,
+                progress: Int,
+                fromUser: Boolean
+            ) {
+                strobeSpeed = progress
             }
 
-            //Bljeskalica u načinu bljeskanja za upozorenje
-            warningButton = findViewById(R.id.warningButton)
-            warningButton.setOnClickListener {
-                if (isWarningModeOn) {
-                    isWarningModeOn = false
-                    stopWarningMode()
-                } else {
-                    isWarningModeOn = true
-                    startWarningMode()
-                }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                // Nema potrebe za implementacijom ovih metoda
             }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                // Nema potrebe za implementacijom ovih metoda
+            }
+        })
+
+        //Bljeskalica uključena samo kada se drži gumb, a inače je ugašena
+        holdingButton.setOnTouchListener { _, motionEvent ->
+            when (motionEvent.action) {
+                MotionEvent.ACTION_DOWN -> turnOnFlashlight() // Uključivanje bljeskalice kada se gumb drži
+                MotionEvent.ACTION_UP -> turnOffFlashlight() // Gašenje bljeskalice kada se gumb otpusti
+            }
+            true
+        }
+
+        //Bljeskalica u načinu bljeskanja za upozorenje
+        warningButton = findViewById(R.id.warningButton)
+        warningButton.setOnClickListener {
+            if (isWarningModeOn) {
+                isWarningModeOn = false
+                stopWarningMode()
+            } else {
+                isWarningModeOn = true
+                startWarningMode()
+            }
+        }
 
     }
 
@@ -385,6 +405,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setAppLanguage(language: String) {
+        // Spremanje odabranog jezika
+        sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        sharedPreferences.edit().putString("selectedLanguage", language).apply()
+
         val locale = when (language) {
             "English" -> Locale("en")
             "Deutsch" -> Locale("de")
@@ -392,6 +416,13 @@ class MainActivity : AppCompatActivity() {
             else -> Locale.getDefault()
         }
         Locale.setDefault(locale)
+
+        // Definiranje elemenata
+        toggleButton = findViewById(R.id.toggleButton)
+        themeSwitcher = findViewById(R.id.themeSwitcher)
+        holdingButton = findViewById(R.id.holdingButton)
+        strobeButton = findViewById(R.id.strobeButton)
+        warningButton = findViewById(R.id.warningButton)
 
         val resources = resources
         val configuration = resources.configuration
@@ -410,26 +441,81 @@ class MainActivity : AppCompatActivity() {
             themeSwitcher.text = getString(R.string.text_light_mode)
         }
         warningButton.text = getString(R.string.warning_button)
+
     }
 
-    // Postavljanje boje teksta za Spinner
-    private fun setSpinnerTextColors() {
-        val textColors = intArrayOf(
-            android.R.color.black,  // Boja teksta za prvi item
-            android.R.color.black,  // Boja teksta za drugi item
-            android.R.color.black   // Boja teksta za treći item
-        )
+    override fun onResume() {
+        super.onResume()
 
-        val adapter = CustomSpinnerAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            resources.getStringArray(R.array.languages),
-            textColors
-        )
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        languageSpinner = findViewById(R.id.languageSpinner)
-        languageSpinner.adapter = adapter
+        constraintLayout = findViewById<ConstraintLayout>(R.id.constraintLayout)
+
+        val switcherState = sharedPreferences.getBoolean("themeSwitcherState", false)
+        themeSwitcher.isChecked = switcherState
+
+        val currentThemeMode = if (switcherState) {
+            AppCompatDelegate.MODE_NIGHT_YES
+        } else {
+            AppCompatDelegate.MODE_NIGHT_NO
+        }
+        AppCompatDelegate.setDefaultNightMode(currentThemeMode)
+
+        // Promjena boje pozadine, gumba i teksta
+        val backgroundRes = when (currentThemeMode) {
+            AppCompatDelegate.MODE_NIGHT_YES -> {
+                themeSwitcher.text = getString(R.string.text_dark_mode)
+                R.color.dark_background
+            }
+            else -> {
+                themeSwitcher.text = getString(R.string.text_light_mode)
+                R.color.light_background
+            }
+        }
+        constraintLayout.setBackgroundColor(ContextCompat.getColor(this, backgroundRes))
+
+        val buttonColor = when (currentThemeMode) {
+            AppCompatDelegate.MODE_NIGHT_YES -> R.color.red
+            else -> R.color.baby_blue
+        }
+        val buttonBackground = ContextCompat.getColorStateList(this, buttonColor)
+        themeSwitcher.thumbTintList = buttonBackground
+        strobeButton.backgroundTintList = buttonBackground
+        themeSwitcher.thumbTintList = buttonBackground
+        warningButton.backgroundTintList = buttonBackground
+        holdingButton.backgroundTintList = buttonBackground
+
+        val textColor = when (currentThemeMode) {
+            AppCompatDelegate.MODE_NIGHT_YES -> android.R.color.white
+            else -> android.R.color.black
+        }
+        themeSwitcher.setTextColor(ContextCompat.getColor(this, textColor))
+        strobeButton.setTextColor(ContextCompat.getColor(this, textColor))
+        warningButton.setTextColor(ContextCompat.getColor(this, textColor))
+        holdingButton.setTextColor(ContextCompat.getColor(this, textColor))
+
+        // Promjena boje simbola
+        val symbolColor = when (currentThemeMode) {
+            AppCompatDelegate.MODE_NIGHT_YES -> R.color.red
+            else -> R.color.baby_blue
+        }
+        symbolImageView.setColorFilter(ContextCompat.getColor(this, symbolColor))
+
+        // Promjena boje `SeekBar`-a
+        val seekBarColor = when (currentThemeMode) {
+            AppCompatDelegate.MODE_NIGHT_YES -> R.color.seekbar_color2
+            else -> R.color.someElementColor
+        }
+        brightnessSeekBar.progressTintList =
+            ColorStateList.valueOf(ContextCompat.getColor(this, seekBarColor))
+
+        // Promjena boje thumba na SeekBar-u
+        val thumbColor = when (currentThemeMode) {
+            AppCompatDelegate.MODE_NIGHT_YES -> R.color.seekbar_color2
+            else -> R.color.someElementColor
+        }
+        brightnessSeekBar.thumbTintList =
+            ColorStateList.valueOf(ContextCompat.getColor(this, thumbColor))
     }
+
 }
 
 
